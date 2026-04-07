@@ -83,8 +83,10 @@ export default function GameBoard() {
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Positional dice for calcDimensions: d1 = player0, d2 = player1
-  const d1 = humanId === 0 ? diceCount[0] : diceCount[1];
-  const d2 = humanId === 0 ? diceCount[1] : diceCount[0];
+  // Clamp to minimum 1 so useOnnxModel doesn't try to load a nonexistent model
+  // when a player is eliminated (0 dice). The model is irrelevant at that point.
+  const d1 = Math.max(1, humanId === 0 ? diceCount[0] : diceCount[1]);
+  const d2 = Math.max(1, humanId === 0 ? diceCount[1] : diceCount[0]);
   const dims = calcDimensions(d1, d2);
   const { isLoading, sampleAction } = useOnnxModel(d1, d2);
 
@@ -133,10 +135,8 @@ export default function GameBoard() {
   };
 
   // Once loading finishes, start the first round
-  const startedRef = useRef(false);
   useEffect(() => {
     if (phase === PHASE.LOADING && !isLoading) {
-      startedRef.current = true;
       beginRound(diceCount, 0 as 0 | 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
