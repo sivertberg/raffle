@@ -66,7 +66,6 @@ export default function GameBoard() {
 
   // diceCount is semantic: [humanDice, robotDice] — never positional
   // Derive positional (player0, player1) for calcDimensions based on humanId
-  const robotId = (humanId === 0 ? 1 : 0) as 0 | 1;
   const d1 = humanId === 0 ? diceCount[0] : diceCount[1];
   const d2 = humanId === 0 ? diceCount[1] : diceCount[0];
   const dims = calcDimensions(d1, d2);
@@ -78,6 +77,18 @@ export default function GameBoard() {
   pubStateRef.current = pubState;
   const privStatesRef = useRef(privStates);
   privStatesRef.current = privStates;
+  const diceCountRef = useRef(diceCount);
+  diceCountRef.current = diceCount;
+  const humanDiceRef = useRef(humanDice);
+  humanDiceRef.current = humanDice;
+  const robotDiceRef = useRef(robotDice);
+  robotDiceRef.current = robotDice;
+  const scoresRef = useRef(scores);
+  scoresRef.current = scores;
+  const humanIdRef = useRef(humanId);
+  humanIdRef.current = humanId;
+  const dimsRef = useRef(dims);
+  dimsRef.current = dims;
 
   // dc is semantic: [humanDice, robotDice]
   const startRound = useCallback(
@@ -187,21 +198,23 @@ export default function GameBoard() {
     [sampleAction]
   );
 
+  // Read all values from refs so this is never stale, even when called
+  // from doRobotTurn's stale closure.
   const resolveChallenge = useCallback(
     (bidAction: number, caller: "human-called" | "robot-called") => {
-      const call = actionToCall(bidAction, dims.nActions);
+      const curDims = dimsRef.current;
+      const curHumanDice = humanDiceRef.current;
+      const curRobotDice = robotDiceRef.current;
+      const curDiceCount = diceCountRef.current;
+      const curScores = scoresRef.current;
+
+      const call = actionToCall(bidAction, curDims.nActions);
       if (!call) return;
 
-      // evaluateCall returns true if the call was valid (caller of liar loses)
-      const bidWasValid = evaluateCall(humanDice, robotDice, bidAction);
-
-      // evaluateCall returns true if the bid was valid (enough dice exist).
-      // If bid was valid → the liar-caller was wrong → they lose.
-      // If bid was a bluff → the liar-caller was right → the bidder loses.
+      const bidWasValid = evaluateCall(curHumanDice, curRobotDice, bidAction);
       const humanLoses = caller === "human-called" ? bidWasValid : !bidWasValid;
 
       setRevealedRobotDice(true);
-      // Highlight the called face and aces (face 1 is wild)
       setHighlightFaces([1, call.face]);
 
       const loserStr = humanLoses ? "You lose" : "Robot loses";
@@ -220,7 +233,7 @@ export default function GameBoard() {
       ]);
 
       // Update dice counts — diceCount is [human, robot]
-      const newDiceCount: [number, number] = [...diceCount];
+      const newDiceCount: [number, number] = [...curDiceCount];
       if (humanLoses) {
         newDiceCount[0] -= 1;
       } else {
@@ -230,7 +243,7 @@ export default function GameBoard() {
 
       if (newDiceCount[0] <= 0 || newDiceCount[1] <= 0) {
         const humanWins = newDiceCount[0] > 0;
-        const newScores: [number, number] = [...scores];
+        const newScores: [number, number] = [...curScores];
         if (humanWins) {
           newScores[0] += 1;
         } else {
@@ -249,7 +262,7 @@ export default function GameBoard() {
         setPhase("round-over");
       }
     },
-    [humanDice, robotDice, diceCount, humanId, robotId, dims.nActions, scores]
+    []
   );
 
   const handleHumanBid = useCallback(
