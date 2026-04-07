@@ -281,8 +281,13 @@ export default function GameBoard() {
     const newHumanId = (humanId === 0 ? 1 : 0) as 0 | 1;
     setHumanId(newHumanId);
 
+    // When humanId swaps, the positional dice counts must also swap
+    // so each player keeps their correct count
+    const swappedDice: [number, number] = [diceCount[1], diceCount[0]];
+    setDiceCount(swappedDice);
+
     const { state, rPriv, newDims, starter } = startRound(
-      diceCount,
+      swappedDice,
       newHumanId,
       history
     );
