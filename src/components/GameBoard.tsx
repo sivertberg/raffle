@@ -10,7 +10,6 @@ import {
   rollDice,
   evaluateCall,
   actionToCall,
-  SIDES,
 } from "@/lib/game-logic";
 import { useOnnxModel } from "@/hooks/useOnnxModel";
 import DiceHand from "./DiceHand";
@@ -269,7 +268,6 @@ export default function GameBoard() {
         setPhase("round-over");
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [humanDice, robotDice, diceCount, humanId, robotId, dims.nActions, scores]
   );
 
@@ -308,7 +306,7 @@ export default function GameBoard() {
     const newHumanId = (humanId === 0 ? 1 : 0) as 0 | 1;
     setHumanId(newHumanId);
 
-    const { state, rPriv, newDims, starter, updatedHistory } = startRound(
+    const { state, rPriv, newDims, starter } = startRound(
       diceCount,
       newHumanId,
       history
@@ -340,7 +338,6 @@ export default function GameBoard() {
     }
   }, [startRound, doRobotTurn]);
 
-  const isHumanTurn = phase === "bidding";
   const currentPlayer = pubState ? getCurrentPlayer(pubState, dims) : humanId;
   const totalDice = diceCount[0] + diceCount[1];
 
