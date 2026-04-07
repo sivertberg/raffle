@@ -189,35 +189,10 @@ export default function GameBoard() {
       // evaluateCall returns true if the call was valid (caller of liar loses)
       const bidWasValid = evaluateCall(humanDice, robotDice, bidAction);
 
-      // If human called liar: bidWasValid means robot's bid was legit -> human loses
-      // If robot called liar: bidWasValid means human's bid was legit -> robot loses
-      let humanLoses: boolean;
-      if (caller === "human-called") {
-        humanLoses = bidWasValid; // bid was real, human was wrong to challenge
-      } else {
-        humanLoses = !bidWasValid; // bid was fake, but wait — robot called it, so human's bid was real -> robot loses. If bid was NOT valid -> human loses
-        // Actually: if robot called liar on human's bid and the bid WAS valid, robot loses.
-        // evaluateCall returns true if the bid holds up -> the caller of liar loses.
-        humanLoses = !bidWasValid; // if bid was NOT valid, it means caller was right -> bidder loses
-        // Let me re-check: evaluateCall(r1, r2, lastCall) returns true if the call is correct (enough dice exist)
-        // If robot called liar on human's bid: valid bid means robot was wrong -> robot loses
-        humanLoses = false; // reset
-        if (bidWasValid) {
-          // Bid was legit, robot was wrong to call liar
-          humanLoses = false;
-        } else {
-          // Bid was bluff, robot was right
-          humanLoses = true;
-        }
-      }
-
-      if (caller === "human-called") {
-        if (bidWasValid) {
-          humanLoses = true; // human was wrong
-        } else {
-          humanLoses = false; // human was right
-        }
-      }
+      // evaluateCall returns true if the bid was valid (enough dice exist).
+      // If bid was valid → the liar-caller was wrong → they lose.
+      // If bid was a bluff → the liar-caller was right → the bidder loses.
+      const humanLoses = caller === "human-called" ? bidWasValid : !bidWasValid;
 
       setRevealedRobotDice(true);
       // Highlight the called face and aces (face 1 is wild)
