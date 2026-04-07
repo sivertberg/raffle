@@ -64,9 +64,11 @@ export default function GameBoard() {
   const [highlightFaces, setHighlightFaces] = useState<number[]>([]);
   const [roundMessage, setRoundMessage] = useState("");
 
+  // diceCount is semantic: [humanDice, robotDice] — never positional
+  // Derive positional (player0, player1) for calcDimensions based on humanId
   const robotId = (humanId === 0 ? 1 : 0) as 0 | 1;
-  const d1 = diceCount[0];
-  const d2 = diceCount[1];
+  const d1 = humanId === 0 ? diceCount[0] : diceCount[1];
+  const d2 = humanId === 0 ? diceCount[1] : diceCount[0];
   const dims = calcDimensions(d1, d2);
   const { isLoading, sampleAction } = useOnnxModel(d1, d2);
 
@@ -77,15 +79,19 @@ export default function GameBoard() {
   const privStatesRef = useRef(privStates);
   privStatesRef.current = privStates;
 
+  // dc is semantic: [humanDice, robotDice]
   const startRound = useCallback(
     (
       dc: [number, number],
       hId: 0 | 1,
       prevHistory: HistoryEntry[]
     ) => {
-      const hDice = rollDice(dc[hId === 0 ? 0 : 1]);
-      const rDice = rollDice(dc[hId === 0 ? 1 : 0]);
-      const newDims = calcDimensions(dc[0], dc[1]);
+      const hDice = rollDice(dc[0]);
+      const rDice = rollDice(dc[1]);
+      // Positional: player0 dice, player1 dice
+      const pos0 = hId === 0 ? dc[0] : dc[1];
+      const pos1 = hId === 0 ? dc[1] : dc[0];
+      const newDims = calcDimensions(pos0, pos1);
       const state = makeInitialState(newDims);
       const hPriv = makePrivateState(hDice, hId, newDims);
       const rPriv = makePrivateState(rDice, (hId === 0 ? 1 : 0) as 0 | 1, newDims);
@@ -213,17 +219,17 @@ export default function GameBoard() {
         { type: "system", message: `${reasonStr} ${loserStr} a die.` },
       ]);
 
-      // Update dice counts
+      // Update dice counts — diceCount is [human, robot]
       const newDiceCount: [number, number] = [...diceCount];
       if (humanLoses) {
-        newDiceCount[humanId] -= 1;
+        newDiceCount[0] -= 1;
       } else {
-        newDiceCount[robotId] -= 1;
+        newDiceCount[1] -= 1;
       }
       setDiceCount(newDiceCount);
 
-      if (newDiceCount[humanId] <= 0 || newDiceCount[robotId] <= 0) {
-        const humanWins = newDiceCount[humanId] > 0;
+      if (newDiceCount[0] <= 0 || newDiceCount[1] <= 0) {
+        const humanWins = newDiceCount[0] > 0;
         const newScores: [number, number] = [...scores];
         if (humanWins) {
           newScores[0] += 1;
@@ -281,13 +287,8 @@ export default function GameBoard() {
     const newHumanId = (humanId === 0 ? 1 : 0) as 0 | 1;
     setHumanId(newHumanId);
 
-    // When humanId swaps, the positional dice counts must also swap
-    // so each player keeps their correct count
-    const swappedDice: [number, number] = [diceCount[1], diceCount[0]];
-    setDiceCount(swappedDice);
-
     const { state, rPriv, newDims, starter } = startRound(
-      swappedDice,
+      diceCount,
       newHumanId,
       history
     );
